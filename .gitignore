@@ -1,0 +1,8 @@
+.env
+smoketest/out/
+fitroom.db*
+library/
+generated/
+.gstack/
+*.bak
+.fuse_hidden*

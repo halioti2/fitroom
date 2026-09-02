@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>fitroom</title>
+<style>
+:root{
+  --bg:#f6f6f4; --panel:#fff; --ink:#151515; --ink2:#555; --ink3:#8a8a8a; --line:#e2e2df; --line2:#ccc;
+  --fill:#151515; --hollow:#c8c8c4;
+  --s1:#3b6fd6; --s2:#d99a2b; --s3:#2a9d8f; --s4:#7b5cd6;   /* the only colour in the app */
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Helvetica,Arial,sans-serif}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:var(--panel);border:1px solid var(--line2);border-radius:6px;padding:6px 12px}
+button:hover{border-color:var(--ink2)}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.primary:disabled{background:#bbb;border-color:#bbb;cursor:not-allowed}
+button.ghost{border-color:transparent;background:transparent;color:var(--ink2)}
+button.ghost:hover{color:var(--ink);background:#eee}
+button.danger{color:#b3261e}
+input[type=text],input[type=search],input[type=number],select,textarea{background:var(--panel);border:1px solid var(--line2);border-radius:6px;padding:6px 9px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--ink2)}
+textarea{width:100%;min-height:64px;resize:vertical}
+h1{font-size:13px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin:0;color:var(--ink)}
+h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin:0;color:var(--ink2)}
+.muted{color:var(--ink3)} .small{font-size:12px} .mono{font-family:var(--mono)}
+.row{display:flex;align-items:center;gap:10px} .grow{flex:1} .wrap{flex-wrap:wrap}
+.hidden{display:none!important}
+
+/* shell */
+#app{display:grid;grid-template-columns:200px 1fr;min-height:100vh}
+nav{border-right:1px solid var(--line);padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto;display:flex;flex-direction:column;gap:2px;background:var(--bg)}
+nav .brand{font-weight:700;letter-spacing:.14em;font-size:13px;margin-bottom:16px}
+nav a.item{display:flex;justify-content:space-between;text-decoration:none;padding:5px 8px;border-radius:6px;color:var(--ink)}
+nav a.item:hover{background:#ececea} nav a.item.on{background:#e4e4e1;font-weight:600}
+nav a.item .n{color:var(--ink3);font-variant-numeric:tabular-nums}
+nav .sec{margin:16px 8px 6px;font-size:10px;letter-spacing:.14em;color:var(--ink3);font-weight:600}
+nav .div{border-top:1px solid var(--line);margin:4px 8px}
+nav .newfit{margin:10px 0 2px}
+nav .legend{margin:auto 8px 12px;padding-top:16px;font-size:11px;line-height:1.7}
+nav .legend .emblem span{display:inline-block;width:11px;height:11px;margin-right:2px;border-radius:2px}
+nav .legend .l1{color:var(--s1)} nav .legend .l2{color:var(--s2)} nav .legend .l3{color:var(--s3)} nav .legend .l4{color:var(--s4)}
+main{padding:22px 28px 40px;min-width:0}
+.head{display:flex;align-items:center;gap:12px;margin-bottom:18px;min-height:32px}
+.head h1{flex:none}
+.back{text-decoration:none;color:var(--ink2)} .back:hover{color:var(--ink)}
+.name-input{font-size:15px;font-weight:600;border-color:transparent;background:transparent;padding:4px 8px;min-width:240px}
+.name-input:hover,.name-input:focus{border-color:var(--line2);background:var(--panel)}
+
+/* cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;position:relative}
+.card:hover{border-color:var(--line2)}
+.card .thumb{aspect-ratio:4/5;background:#ececea;display:flex;align-items:center;justify-content:center;color:var(--ink3);overflow:hidden}
+.card .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.card .thumb.contain img{object-fit:contain;background:#fff}
+.card .body{padding:8px 10px;border-top:1px solid var(--line);font-size:12px}
+.card .title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slots{letter-spacing:1px;font-size:12px;line-height:1;margin-top:3px}
+.slots .f{color:var(--fill)} .slots .h{color:var(--hollow)}
+.plus{font-size:30px;font-weight:200;color:var(--ink3);border:1px dashed var(--line2);border-radius:8px;width:52px;height:52px;display:flex;align-items:center;justify-content:center}
+
+/* drop zones */
+.drop{border:1.5px dashed var(--line2);border-radius:8px;background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--ink3);cursor:pointer;position:relative;overflow:hidden;min-height:120px}
+.drop.over{border-color:var(--ink);background:#f0f0ee}
+.drop img{width:100%;height:100%;object-fit:contain;display:block;background:#fff}
+.drop .x{position:absolute;top:6px;right:6px;background:rgba(255,255,255,.9);border:1px solid var(--line2);border-radius:5px;width:24px;height:24px;line-height:22px;text-align:center;font-size:13px}
+.cell{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.cell .drop{border:none;border-radius:0;aspect-ratio:1;min-height:0}
+.cell .label{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border-top:1px solid var(--line);font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+.cell .label input{border:none;background:transparent;padding:0;letter-spacing:.1em;text-transform:uppercase;font-weight:600;font-size:11px;width:100%}
+.cell .label .pen{color:var(--ink3);cursor:text}
+
+/* toggle */
+.tog{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;color:var(--ink2)}
+.tog i{width:30px;height:16px;border-radius:9px;background:var(--line2);position:relative;transition:.15s;display:inline-block}
+.tog i:after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:.15s}
+.tog.on i{background:var(--ink)} .tog.on i:after{left:16px}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:6px;overflow:hidden}
+.seg button{border:none;border-radius:0;padding:5px 12px;background:var(--panel)}
+.seg button.on{background:var(--ink);color:#fff}
+
+/* section blocks */
+.block{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.block h2{margin-bottom:10px}
+.link-btn{background:none;border:none;padding:0;color:var(--ink2);text-decoration:none}
+.link-btn:hover{color:var(--ink);text-decoration:underline}
+.notes .cap{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:6px;color:var(--ink2)}
+.notes .cap span:last-child{font-weight:400;letter-spacing:0;text-transform:none;color:var(--ink3)}
+
+/* fit builder */
+.fit{display:flex;flex-direction:column;height:calc(100vh - 44px)}
+.fit .rows{flex:1;overflow:auto;padding-right:4px;display:flex;flex-direction:column;gap:8px}
+.crow{border:1px solid var(--line);border-radius:8px;background:var(--panel);display:grid;grid-template-columns:1fr 1fr}
+.crow.empty{grid-template-columns:1fr;padding:7px 12px;display:flex;justify-content:space-between;align-items:center;color:var(--ink3)}
+.crow.empty:hover{border-color:var(--line2)}
+.crow .half{padding:8px 10px;min-width:0}
+.crow .half+.half{border-left:1px solid var(--line)}
+.crow .cap{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--ink2);margin-bottom:6px}
+.crow .cap input{font-size:12px;letter-spacing:0;text-transform:none;font-weight:400;padding:2px 7px;width:120px}
+.strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.mini{flex:none;width:64px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff;position:relative;cursor:pointer;text-align:center}
+.mini img{width:100%;aspect-ratio:1;object-fit:contain;display:block}
+.mini .t{font-size:10px;padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-top:1px solid var(--line)}
+.mini .add{position:absolute;bottom:18px;right:2px;background:rgba(255,255,255,.95);border:1px solid var(--line2);border-radius:4px;width:18px;height:18px;line-height:16px;font-size:13px}
+.mini.sl{width:84px} .mini.sl.sel{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.mini .x{position:absolute;top:2px;right:2px;background:rgba(255,255,255,.95);border:1px solid var(--line2);border-radius:4px;width:18px;height:18px;line-height:16px;font-size:11px}
+.mini .chk{font-size:12px;height:16px;line-height:16px}
+.crow .note{font-size:11px;color:var(--ink3);margin-top:4px;text-align:right}
+.dock{border-top:1px dotted var(--line2);margin-top:8px;padding-top:8px}
+.dock .imgs{display:flex;gap:8px;overflow-x:auto}
+.dock .im{flex:none;width:72px;aspect-ratio:2/3;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#eee;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;color:var(--ink3)}
+.dock .im img{width:100%;height:100%;object-fit:cover}
+.dock .im .seq{position:absolute;bottom:2px;left:4px;font-size:10px;background:rgba(255,255,255,.9);padding:0 4px;border-radius:3px}
+.genbar{border-top:2px solid var(--ink);margin-top:8px;padding-top:10px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.genbar .row{gap:14px}
+.genbar label{color:var(--ink2)}
+.warn{background:#fff7e6;border:1px solid #efd9a8;border-radius:6px;padding:8px 12px;font-size:13px}
+.err{background:#fdecea;border:1px solid #f3b9b3;border-radius:6px;padding:8px 12px;font-size:13px}
+.spin{display:inline-block;animation:spin 1s linear infinite} @keyframes spin{to{transform:rotate(360deg)}}
+
+/* image detail */
+.detail{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px}
+.detail .big{background:#ececea;border-radius:8px;display:flex;align-items:center;justify-content:center;max-height:70vh;overflow:hidden}
+.detail .big img{max-width:100%;max-height:70vh;display:block}
+.kv{display:grid;grid-template-columns:70px 1fr;gap:3px 10px;font-size:13px}
+.kv .k{color:var(--ink3)}
+.kv a{text-decoration:none} .kv a:hover{text-decoration:underline}
+.tag{font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line2);border-radius:4px;padding:0 5px;color:var(--ink2);margin-left:6px}
+.refline{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line);font-size:13px}
+.refline a{text-decoration:none;color:var(--ink2)}
+.film{display:flex;gap:6px;overflow-x:auto}
+.film a{flex:none;width:56px;aspect-ratio:2/3;border-radius:5px;overflow:hidden;border:1px solid var(--line);position:relative;background:#eee}
+.film a.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.film img{width:100%;height:100%;object-fit:cover}
+.film .n{position:absolute;bottom:0;left:0;right:0;font-size:9px;text-align:center;background:rgba(255,255,255,.85)}
+
+/* lightbox */
+.lb{position:fixed;inset:0;background:rgba(20,20,20,.75);display:flex;align-items:center;justify-content:center;z-index:50}
+.lb .box{background:var(--panel);border-radius:10px;padding:14px 16px;width:min(920px,94vw);max-height:92vh;display:flex;flex-direction:column;gap:10px}
+.lb .top{display:flex;justify-content:space-between;align-items:center}
+.lb .mid{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:14px;min-height:0}
+.lb .mid img{max-width:100%;max-height:70vh;display:block;margin:auto;border-radius:6px}
+.lb .bot{display:flex;justify-content:space-between;align-items:center}
+
+/* menus */
+.menu{position:absolute;right:8px;top:30px;background:var(--panel);border:1px solid var(--line2);border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.08);z-index:5;min-width:130px;padding:4px}
+.menu button{display:block;width:100%;text-align:left;border:none;border-radius:4px;padding:6px 10px;background:none}
+.menu button:hover{background:#eee}
+.dots{position:absolute;right:6px;top:6px;background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:5px;padding:0 6px;line-height:20px}
+.meter{display:inline-block;height:10px;background:#eee;border-radius:5px;overflow:hidden;width:140px;vertical-align:middle}
+.meter i{display:block;height:100%;background:var(--ink)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 14px;border-radius:6px;font-size:13px;z-index:60;opacity:.95}
+.empty{padding:40px;text-align:center;color:var(--ink3);border:1px dashed var(--line2);border-radius:8px}
+kbd{font:11px var(--mono);border:1px solid var(--line2);border-bottom-width:2px;border-radius:3px;padding:0 4px}
+.px-ok{color:#15803d}.px-mid{color:#b45309}.px-bad{color:#b91c1c;font-weight:600}
+.notechip{color:#b45309;font-size:11px}
+#fcbox{position:absolute;border:2px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.45);cursor:move}
+#fchandle{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;background:#fff;border:1px solid #333;cursor:nwse-resize}
+</style>
+</head>
+<body>
+<div id="app"><nav id="nav"></nav><main id="main"></main></div>
+<div id="overlay"></div>
+<script>
+/* =============================================================== constants */
+const CATS = [                       // slot order is always FRONT, SIDE, then TOP or BACK (whichever the item has), DETAIL
+  { id:'look',       name:'Look',        labels:['FRONT','SIDE','BACK','DETAIL'] },
+  { id:'headwear',   name:'Headwear',    labels:['FRONT','SIDE','TOP','DETAIL'] },
+  { id:'top',        name:'Top',         labels:['FRONT','SIDE','BACK','DETAIL'] },
+  { id:'mid',        name:'Mid-layer',   labels:['FRONT','SIDE','BACK','DETAIL'] },
+  { id:'outerwear',  name:'Outerwear',   labels:['FRONT','SIDE','BACK','DETAIL'] },
+  { id:'fullbody',   name:'Full-body',   labels:['FRONT','SIDE','BACK','DETAIL'] },
+  { id:'bottom',     name:'Bottom',      labels:['FRONT','SIDE','BACK','DETAIL'] },
+  { id:'socks',      name:'Socks',       labels:['FRONT','SIDE','TOP','DETAIL'] },
+  { id:'footwear',   name:'Footwear',    labels:['FRONT','SIDE','TOP','DETAIL'] },
+  { id:'bag',        name:'Bag',         labels:['FRONT','SIDE','BACK','DETAIL'] },
+  { id:'accessories',name:'Accessories', labels:['FRONT','SIDE','TOP','DETAIL'] },
+];
+const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
+const ASPECTS = ['2:3','3:4','4:5','1:1','5:4','4:3','3:2','9:16','16:9','21:9'];
+const ASPECT_NAMES = { '2:3':'2:3 portrait','3:4':'3:4 portrait','4:5':'4:5 portrait','1:1':'1:1 square','5:4':'5:4','4:3':'4:3','3:2':'3:2 landscape','9:16':'9:16 tall','16:9':'16:9 wide','21:9':'21:9 ultrawide' };
+// prompt words for a garment category
+const GARMENT_WORD = { headwear:'headwear', top:'top', mid:'mid-layer', outerwear:'outer jacket', fullbody:'one-piece garment', bottom:'trousers', socks:'socks', footwear:'shoes', bag:'bag', accessories:'accessories' };
+
+/* =============================================================== state + api */
+let S = null;                    // server state
+const api = async (path, method = 'GET', body) => {
+  const r = await fetch(path, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
+  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  return j;
+};
+const load = async () => { S = await api('/api/state'); return S; };
+const post = (p, b) => api(p, 'POST', b);
+const del = (p) => api(p, 'DELETE');
+const itemById = id => S.items.find(i => i.id === id);
+const fitById = id => S.fits.find(f => f.id === id);
+const imageById = id => { for (const f of S.fits) { const im = f.images.find(i => i.id === id); if (im) return im; } return null; };
+const imgUrl = f => '/generated/' + f;
+const libUrl = f => '/library/' + f;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const money = n => '$' + (Math.round(n * 1000) / 1000).toFixed(3).replace(/0$/, '');
+const ago = iso => { const s = (Date.now() - new Date(iso)) / 1000; if (s < 60) return 'just now'; const m = s / 60, h = m / 60, d = h / 24;
+  if (m < 60) return `${m | 0}m ago`; if (h < 24) return `${h | 0}h ago`; if (d < 7) return `${d | 0}d ago`; if (d < 30) return `${(d / 7) | 0}w ago`; if (d < 365) return `${(d / 30) | 0}mo ago`; return `${(d / 365) | 0}y ago`; };
+const fmtDate = iso => new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const linkify = t => esc(t).replace(/(https?:\/\/[^\s<]+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gi, m => `<a href="${m.startsWith('http') ? m : 'https://' + m}" target="_blank" rel="noopener">${m}</a>`);
+let toastT; const toast = (m, ms = 2400) => { document.querySelectorAll('.toast').forEach(t => t.remove()); const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), ms); };
+// photo fill badge:  ▣▣▢▢
+const slotsBadge = item => { const have = new Set(item.photos.map(p => p.slot)); const n = item.multi_angle ? 4 : 1;
+  return `<div class="slots" title="${esc(item.photos.map(p => p.label || CAT[item.category].labels[p.slot]).join(' · ') || 'no photo')}">${[0,1,2,3].map(i => i < n && have.has(i) ? '<span class="f">▣</span>' : '<span class="h">▢</span>').join('')}</div>`; };
+const itemThumb = item => { const p = item.photos.find(p => p.slot === 0) || item.photos[0]; return p ? `<img src="${libUrl(p.filename)}" alt="">` : '<span class="small">no photo</span>'; };
+const catName = id => CAT[id]?.name || id;
+
+/* =============================================================== images: resize + sheets */
+const readFileAsImage = file => new Promise((res, rej) => { const url = URL.createObjectURL(file); const im = new Image(); im.onload = () => { URL.revokeObjectURL(url); res(im); }; im.onerror = rej; im.src = url; });
+async function fileToDataUrl(file, max = 2048) {           // downscale big uploads; keep aspect
+  const im = await readFileAsImage(file);
+  const k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.92);
+}
+const loadImg = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+// Arbitrary groupings from the start (DESIGN §6). cells: [{src, label}] → data URL. 2→2×1, 3-4→2×2, letterbox never crop.
+async function makeSheet(cells, { cell = 1024, bar = 72 } = {}) {
+  const cols = 2, rows = cells.length <= 2 ? 1 : 2;
+  const c = document.createElement('canvas'); c.width = cols * cell; c.height = rows * (cell + bar);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  const imgs = await Promise.all(cells.map(x => loadImg(x.src)));
+  cells.forEach((x, i) => {
+    const r = (i / cols) | 0, col = i % cols, x0 = col * cell, y0 = r * (cell + bar), im = imgs[i], pad = 12;
+    const k = Math.min((cell - 2 * pad) / im.naturalWidth, (cell - 2 * pad) / im.naturalHeight);
+    const w = im.naturalWidth * k, h = im.naturalHeight * k;
+    g.drawImage(im, x0 + (cell - w) / 2, y0 + (cell - h) / 2, w, h);
+    g.fillStyle = '#141414'; g.fillRect(x0, y0 + cell, cell, bar);
+    g.fillStyle = '#fff'; g.font = '600 40px -apple-system, Helvetica, Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    let label = x.label; while (g.measureText(label).width > cell - 40 && label.length > 4) label = label.slice(0, -2) + '…';
+    g.fillText(label, x0 + cell / 2, y0 + cell + bar / 2);
+    g.strokeStyle = '#141414'; g.lineWidth = 3; g.strokeRect(x0 + 1.5, y0 + 1.5, cell - 3, cell + bar - 3);
+  });
+  return c.toDataURL('image/jpeg', 0.9);
+}
+const sheetLayout = n => n <= 1 ? '' : n === 2 ? '2×1' : '2×2';
+
+/* =============================================================== drag/drop + paste */
+function bindDrop(el, onFile) {
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('over'));
+  el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); const f = [...e.dataTransfer.files].find(f => f.type.startsWith('image/')); if (f) onFile(f); });
+  el.addEventListener('click', e => { if (e.target.closest('.x,button,input')) return; const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = () => inp.files[0] && onFile(inp.files[0]); inp.click(); });
+}
+let pasteTarget = null;           // set by the page: fn(file)
+document.addEventListener('paste', e => { const f = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if (f && pasteTarget) { e.preventDefault(); pasteTarget(f.getAsFile()); } });
+
+/* =============================================================== router */
+const go = h => { location.hash = h; };
+function route() {
+  const h = location.hash.replace(/^#\/?/, '') || 'library/look';
+  const [a, b, c] = h.split('/');
+  pasteTarget = null; closeLightbox();
+  renderNav(a === 'library' ? b : a);
+  const M = document.getElementById('main'); M.innerHTML = '';
+  if (a === 'library') pageLibrary(M, b || 'look');
+  else if (a === 'item') pageItem(M, b);
+  else if (a === 'me') pageMe(M);
+  else if (a === 'fits') pageFits(M);
+  else if (a === 'fit') (c === 'images' ? pageFitImages(M, b) : pageFit(M, b));
+  else if (a === 'image') pageImage(M, b);
+  else if (a === 'settings') pageSettings(M);
+  else pageLibrary(M, 'look');
+}
+window.addEventListener('hashchange', route);
+const refresh = async () => { await load(); route(); };
+
+/* =============================================================== nav */
+function renderNav(active) {
+  const counts = Object.fromEntries(CATS.map(c => [c.id, S.items.filter(i => i.category === c.id).length]));
+  const cat = c => `<a class="item ${active === c.id ? 'on' : ''}" href="#/library/${c.id}"><span>${c.name}</span><span class="n">${counts[c.id]}</span></a>`;
+  document.getElementById('nav').innerHTML = `
+    <div class="brand">FITROOM</div>
+    <a class="item ${active === 'me' ? 'on' : ''}" href="#/me"><span>Me</span><span class="n">${S.me.length}</span></a>
+    <a class="item ${active === 'fits' || active === 'fit' || active === 'image' ? 'on' : ''}" href="#/fits"><span>Fits</span><span class="n">${S.fits.length}</span></a>
+    <div class="newfit"><button style="width:100%" onclick="newFit()">+ New Fit</button></div>
+    <div class="sec">ITEMS</div>
+    ${cat(CATS[0])}<div class="div"></div>${CATS.slice(1).map(cat).join('')}
+    <div class="legend">
+      <div class="emblem"><span style="background:var(--s1)"></span><span style="background:var(--s2)"></span><span style="background:var(--s3)"></span><span style="background:var(--s4)"></span></div>
+      <div style="letter-spacing:.12em;font-weight:600;color:var(--ink2);margin-top:2px">SLOTS</div>
+      <div class="l1">1 front</div><div class="l2">2 side</div><div class="l3">3 top·back</div><div class="l4">4 detail</div>
+    </div>
+    <a class="item ${active === 'settings' ? 'on' : ''}" href="#/settings"><span>⚙ Settings</span><span class="n ${S.key_loaded ? 'hidden' : ''}" title="no API key">!</span></a>`;
+}
+async function newFit() { const name = prompt('Name the fit', 'New fit'); if (name == null) return; const r = await post('/api/fits', { name: name || 'Untitled fit' }); await load(); go(`/fit/${r.id}`); }
+
+/* =============================================================== page 1 — library */
+function pageLibrary(M, catId) {
+  const c = CAT[catId] || CATS[0];
+  const items = S.items.filter(i => i.category === c.id);
+  M.innerHTML = `<div class="head"><h1>${c.name}</h1><span class="grow"></span><button class="primary" onclick="newItem('${c.id}')">+ New item</button></div>
+    ${items.length ? `<div class="grid">${items.map(i => `<a class="card" href="#/item/${i.id}"><div class="thumb contain">${itemThumb(i)}</div><div class="body"><div class="title">${esc(i.title) || '<span class="muted">untitled</span>'}</div>${slotsBadge(i)}</div></a>`).join('')}</div>`
+      : `<div class="empty">No ${c.name.toLowerCase()} yet. ${c.id === 'look' ? 'A Look is a photo of a complete outfit — on you, a model, anyone.' : 'A product-page screenshot is a fine reference photo.'}<br><br><button onclick="newItem('${c.id}')">+ New item</button></div>`}`;
+}
+async function newItem(category) { const r = await post('/api/items', { category }); await load(); go(`/item/${r.id}`); }
+
+/* =============================================================== page 2 — item editor */
+function pageItem(M, id) {
+  const it = itemById(id); if (!it) { M.innerHTML = '<div class="empty">Item not found.</div>'; return; }
+  const c = CAT[it.category]; const photos = Object.fromEntries(it.photos.map(p => [p.slot, p]));
+  const labelOf = slot => photos[slot]?.label || c.labels[slot];
+  const shown = it.multi_angle ? [0, 1, 2, 3] : [0];
+  const n = shown.filter(s => photos[s]).length;
+  const cell = slot => `<div class="cell" data-slot="${slot}">
+      <div class="drop">${photos[slot] ? `<img src="${libUrl(photos[slot].filename)}" alt=""><span class="x" title="remove">✕</span>` : `<div class="small">drop photo${slot === 0 || slot === 1 ? '<br>or paste' : ''}</div>`}</div>
+      <div class="label"><input value="${esc(labelOf(slot))}" data-slot="${slot}" ${photos[slot] ? '' : 'disabled'} title="Label is burned into the contact sheet — editing it is editing the prompt"><span class="pen">✎</span></div></div>`;
+  M.innerHTML = `
+    <div class="head"><a class="back" href="#/library/${it.category}">‹ ${c.name}</a>
+      <input class="name-input" id="title" placeholder="Untitled item" value="${esc(it.title)}">
+      <span class="grow"></span>
+      <label class="muted small">Group</label><select id="cat">${CATS.map(x => `<option value="${x.id}" ${x.id === it.category ? 'selected' : ''}>${x.name}</option>`).join('')}</select>
+      <button class="danger" onclick="deleteItem('${it.id}')">Delete</button></div>
+    <div style="max-width:640px;display:flex;flex-direction:column;gap:18px">
+      <div>
+        <div class="row" style="margin-bottom:8px"><h2>Reference photo${it.multi_angle ? 's' : ''}</h2><span class="grow"></span>
+          <span class="tog ${it.multi_angle ? 'on' : ''}" id="multi"><span>Multiple angles</span><i></i><span class="small">${it.multi_angle ? 'on' : ''}</span></span></div>
+        <div style="display:grid;grid-template-columns:${it.multi_angle ? '1fr 1fr' : '1fr'};gap:8px;${it.multi_angle ? '' : 'max-width:420px'}">${shown.map(cell).join('')}</div>
+        ${it.multi_angle ? `<div class="small muted" style="text-align:right;margin-top:6px">${n > 1 ? `ships as ${sheetLayout(n)}` : n === 1 ? 'ships uncomposited — one photo, no sheet' : 'no photos yet'}</div>` : ''}
+      </div>
+      <div class="row wrap" style="gap:18px">
+        ${it.prompt_notes ? '' : '<button class="link-btn" onclick="openNotes(\'p\')">+ Add prompt notes</button>'}
+        ${it.my_notes ? '' : '<button class="link-btn" onclick="openNotes(\'m\')">+ Add my notes</button>'}
+      </div>
+      <div class="notes ${it.prompt_notes ? '' : 'hidden'}" id="pn"><div class="cap"><span>Prompt notes</span><span>sent with the prompt</span></div><textarea id="prompt_notes" placeholder="raw denim, straight leg, stacks at the ankle, copper hardware">${esc(it.prompt_notes)}</textarea></div>
+      <div class="notes ${it.my_notes ? '' : 'hidden'}" id="mn"><div class="cap"><span>My notes</span><span>never sent</span></div><textarea id="my_notes" placeholder="where you bought it, size, price">${esc(it.my_notes)}</textarea>
+        <div class="small" id="mylinks" style="margin-top:4px">${it.my_notes ? linkify(it.my_notes).replace(/\n/g, '<br>') : ''}</div></div>
+      <div class="row">${it.multi_angle && n > 1 ? `<button onclick="previewSheet('${it.id}')">Preview contact sheet</button>` : ''}<span class="grow"></span><span class="small muted" id="savestate"></span><button class="primary" onclick="saveItem('${it.id}')">Save</button></div>
+    </div>`;
+  // photo slots
+  M.querySelectorAll('.cell').forEach(cellEl => {
+    const slot = +cellEl.dataset.slot, drop = cellEl.querySelector('.drop');
+    const upload = async file => { toast('Uploading…'); const data = await fileToDataUrl(file); await post(`/api/items/${it.id}/photo`, { slot, data, label: labelOf(slot) }); await refresh(); };
+    bindDrop(drop, upload);
+    if (slot === 0 || slot === 1) pasteTarget = pasteTarget || (f => { const target = shown.find(s => !photos[s]); if (target != null) M.querySelector(`.cell[data-slot="${target}"] .drop`).__upload(f); });
+    drop.__upload = upload;
+    drop.querySelector('.x')?.addEventListener('click', async e => { e.stopPropagation(); await post(`/api/items/${it.id}/photo`, { slot }); await refresh(); });
+  });
+  M.querySelector('#multi').onclick = async () => { await post('/api/items', { id: it.id, multi_angle: !it.multi_angle }); await refresh(); };
+  M.querySelector('#cat').onchange = async e => { await post('/api/items', { id: it.id, category: e.target.value }); await refresh(); };
+  M.querySelector('#my_notes').oninput = e => { M.querySelector('#mylinks').innerHTML = linkify(e.target.value).replace(/\n/g, '<br>'); };
+  const markDirty = () => { M.querySelector('#savestate').textContent = 'unsaved'; };
+  ['#title', '#prompt_notes', '#my_notes'].forEach(sel => M.querySelector(sel).oninput = markDirty);
+  M.querySelectorAll('.label input').forEach(i => i.oninput = markDirty);
+  M.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); saveItem(it.id); } });
+}
+window.openNotes = which => { document.getElementById(which === 'p' ? 'pn' : 'mn').classList.remove('hidden'); event.target.remove(); document.getElementById(which === 'p' ? 'prompt_notes' : 'my_notes').focus(); };
+window.starFace = async (id, on, px) => {
+  if (on && px && px < 512) return toast(`${px}px is too small to carry your likeness — recrop or reshoot closer.`);
+  if (on && !px && !confirm('This photo was added before face size was measured. Star it anyway?')) return;
+  await post('/api/me/photo', { id, starred: on }); await refresh();
+};
+async function saveItem(id) {
+  const g = s => document.querySelector(s);
+  const labels = [0, 1, 2, 3].map(s => g(`.label input[data-slot="${s}"]`)?.value ?? itemById(id).photos.find(p => p.slot === s)?.label ?? '');
+  await post('/api/items', { id, title: g('#title').value.trim(), prompt_notes: g('#prompt_notes').value.trim(), my_notes: g('#my_notes').value.trim(), labels });
+  await load(); g('#savestate').textContent = 'saved'; toast('Saved'); renderNav(itemById(id).category);
+}
+async function deleteItem(id) { const it = itemById(id); if (!confirm(`Delete "${it.title || 'this item'}"? Its photos go too. Generated images keep their record of it.`)) return; await del(`/api/items/${id}`); await load(); go(`/library/${it.category}`); }
+async function previewSheet(id) {
+  const it = itemById(id), c = CAT[it.category];
+  const cells = it.photos.filter(p => p.slot < 4).sort((a, b) => a.slot - b.slot).map(p => ({ src: libUrl(p.filename), label: p.label || c.labels[p.slot] }));
+  const url = await makeSheet(cells);
+  document.getElementById('overlay').innerHTML = `<div class="lb" onclick="if(event.target===this)closeLightbox()"><div class="box" style="width:min(760px,94vw)"><div class="top"><span><b>Contact sheet</b> <span class="muted small">— exactly what the model receives, ${sheetLayout(cells.length)}</span></span><button class="ghost" onclick="closeLightbox()">✕</button></div><img src="${url}" style="max-width:100%;max-height:78vh;display:block;margin:auto;border:1px solid var(--line)"></div></div>`;
+}
+
+/* =============================================================== page 3 — me */
+function pageMe(M) {
+  const by = r => S.me.filter(m => m.role === r);
+  const faces = by('face'), bodies = by('body'), poses = by('pose'), starred = faces.filter(f => f.starred).sort((a, b) => a.star_order - b.star_order);
+  const q = S.settings.quality === 'pro' ? 'pro' : 'flash', cap = S.models[q].characters;
+  const bySha = {}; for (const m of S.me) if (m.sha) (bySha[m.sha] ||= []).push(m);
+  const dupSets = Object.values(bySha).filter(g => g.length > 1);
+  const used = Math.min(cap, 1 + (bodies.length ? 1 : 0) + starred.length);
+  const facesUsed = Math.min(starred.length, cap - 1 - (bodies.length ? 1 : 0));
+  const card = m => `<div class="card" style="width:150px"><div class="thumb"><img src="${libUrl(m.filename)}" alt=""></div>
+      <div class="body row" style="gap:6px"><input class="grow" value="${esc(m.title)}" placeholder="${m.role}" style="border-color:transparent;padding:2px 4px;min-width:0" onchange="post('/api/me/photo',{id:'${m.id}',title:this.value}).then(load)">
+      ${m.role === 'face' ? `<button class="ghost" style="padding:0 6px" title="${m.starred ? 'unstar' : 'star (used for identity)'}" onclick="starFace('${m.id}',${m.starred ? 'false' : 'true'},${+m.face_px || 0})">${m.starred ? '★' : '☆'}</button>` : ''}
+      <button class="ghost danger" style="padding:0 6px" title="delete" onclick="if(confirm('Delete this photo?'))del('/api/me/photo/${m.id}').then(refresh)">🗑</button></div>
+      ${m.role === 'face' ? `<div class="small ${(+m.face_px >= 1024) ? 'px-ok' : (+m.face_px >= 512) ? 'px-mid' : 'px-bad'}" style="padding:0 6px 6px">${+m.face_px ? `${m.face_px}px face` : 'size unknown'}</div>` : ''}</div>`;
+  const section = (role, title, sub, list, note) => `<div>
+      <div class="row" style="margin-bottom:8px"><h2>${title}</h2><span class="small muted">${sub}</span><span class="grow"></span><button onclick="addMe('${role}')">+ Add ${role} photo</button></div>
+      <div class="row wrap" style="align-items:stretch">${list.map(card).join('')}<div class="drop" id="drop-${role}" style="width:150px;min-height:120px"><div class="small">drop or paste</div></div></div>
+      ${note ? `<div class="small muted" style="margin-top:6px">${note}</div>` : ''}</div>`;
+  M.innerHTML = `<div class="head"><h1>Me</h1></div>
+    <div style="display:flex;flex-direction:column;gap:26px;max-width:900px">
+      ${faces.length && !starred.length ? '<div class="warn">You have face photos but none are starred — nothing would be sent as your identity. Star at least one.</div>' : ''}
+      ${!faces.length ? '<div class="warn">No face photos. Without one the model has no idea who you are — the result will not be you.</div>' : ''}
+      ${dupSets.map(g => `<div class="warn">The same photo is filed as ${g.map(m => `<b>${m.role}</b>${m.title ? ` (${esc(m.title)})` : ''}`).join(' and ')}. It is sent once, not twice — a duplicate reference costs a character slot and adds nothing.</div>`).join('')}
+      ${section('face', 'Face', 'identity · starred ones are sent', faces, `${starred.length} starred${starred.length > facesUsed ? ` · only ${facesUsed} fit on ${S.models[q].label}, the rest drop in reverse star order` : ''}. Even frontal light, neutral expression, no glasses/hats/hands, under ~60° of turn, ≥1024px of actual face. A harsh side shadow reads as bone structure. A <i>coherent</i> set beats individually better photos.`)}
+      ${section('body', 'Body', 'proportions · optional, one is sent', bodies, 'A full-length photo in fitted clothes. First to drop when the character budget is tight.')}
+      ${section('pose', 'Pose', 'pick one when generating · mandatory', poses, 'Stance, framing and camera angle. Full-body in a plain setting works best. Generation needs at least one.')}
+      <div class="block" style="max-width:420px"><h2>Character slots</h2>
+        <div class="row"><span class="meter"><i style="width:${used / cap * 100}%"></i></span><b>${used} of ${cap}</b> <span class="muted">(${S.models[q].label})</span></div>
+        <div class="small muted" style="margin-top:6px">${facesUsed} face + ${bodies.length ? 1 : 0} body + 1 pose${q === 'pro' ? ' · on Flash you get 4 — body drops first' : ' · on Pro you get 5'}</div></div>
+    </div>`;
+  for (const role of ['face', 'body', 'pose']) bindDrop(M.querySelector(`#drop-${role}`), f => uploadMe(role, f));
+  pasteTarget = f => uploadMe('face', f);
+}
+async function uploadMe(role, file) {
+  const data = await fileToDataUrl(file);
+  if (role === 'face') return openFaceCrop(data);        // faces must be measured, not guessed
+  toast('Uploading…'); await post('/api/me/photo', { role, data }); await refresh();
+}
+async function sendMe(role, data, face_px) {
+  toast('Uploading…');
+  const r = await post('/api/me/photo', { role, data, face_px });
+  if (role === 'face' && face_px >= 512) await post('/api/me/photo', { id: r.id, starred: true });
+  if (r.duplicates?.length) toast(`Same photo is already here as "${r.duplicates[0].role}" — it will be sent once.`);
+  await refresh();
+}
+
+/* Face crop. Run 1 sent an 81px face lifted from a full-body shot and the model invented
+   a stranger. You cannot fix that with a prompt, so the size is now measured here and the
+   number is shown before anything is starred. (OPEN.md F1.) */
+const FC = {};
+window.openFaceCrop = (dataUrl) => {
+  document.getElementById('overlay').innerHTML = `<div class="lb"><div class="box" style="width:min(760px,94vw)">
+    <div class="top"><span><b>Crop your face</b> <span class="muted small">— drag the box over your face; this crop is what gets sent as your identity</span></span>
+      <button class="ghost" onclick="closeLightbox()">✕</button></div>
+    <div id="fcwrap" style="position:relative;display:inline-block;max-width:100%;user-select:none;touch-action:none">
+      <img id="fcimg" src="${dataUrl}" style="max-width:100%;max-height:60vh;display:block">
+      <div id="fcbox"><div id="fchandle"></div></div></div>
+    <div class="row" style="margin-top:10px"><span id="fcread" class="small"></span><span class="grow"></span>
+      <button class="ghost" onclick="closeLightbox()">Cancel</button>
+      <button id="fcsave" onclick="faceCropSave()">Use this crop</button></div>
+    <div class="small muted" style="margin-top:6px">Under 512px the model invents a face instead of reproducing yours. 1024px or more is the target — that usually means standing two or three feet from the camera, not across the room.</div>
+  </div></div>`;
+  const img = document.getElementById('fcimg');
+  const init = () => {
+    const w = img.clientWidth, h = img.clientHeight, side = Math.round(Math.min(w, h) * 0.45);
+    FC.data = dataUrl; FC.img = img;
+    FC.box = { x: Math.round((w - side) / 2), y: Math.round(h * 0.12), w: side };
+    drawFC(); bindFC();
+  };
+  img.complete && img.naturalWidth ? init() : (img.onload = init);
+};
+function fcScale() { return FC.img.naturalWidth / FC.img.clientWidth; }
+function drawFC() {
+  const b = FC.box, el = document.getElementById('fcbox');
+  el.style.left = b.x + 'px'; el.style.top = b.y + 'px'; el.style.width = b.w + 'px'; el.style.height = b.w + 'px';
+  const px = Math.round(b.w * fcScale());
+  const cls = px >= 1024 ? 'px-ok' : px >= 512 ? 'px-mid' : 'px-bad';
+  const msg = px >= 1024 ? 'good' : px >= 512 ? 'usable — 1024 is the target' : 'too small, this will not look like you';
+  document.getElementById('fcread').innerHTML = `<span class="${cls}">${px}px — ${msg}</span>`;
+  document.getElementById('fcsave').textContent = px >= 512 ? 'Use this crop' : 'Use anyway (unstarred)';
+}
+function bindFC() {
+  const wrap = document.getElementById('fcwrap');
+  wrap.onpointerdown = e => {
+    const r = wrap.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, b = FC.box;
+    const mode = e.target.id === 'fchandle' ? 'size'
+      : (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.w) ? 'move' : null;
+    if (!mode) return;
+    e.preventDefault(); wrap.setPointerCapture(e.pointerId);
+    const ox = x - b.x, oy = y - b.y, ow = b.w;
+    wrap.onpointermove = ev => {
+      const cx = ev.clientX - r.left, cy = ev.clientY - r.top;
+      const W = FC.img.clientWidth, H = FC.img.clientHeight;
+      if (mode === 'move') {
+        b.x = Math.max(0, Math.min(W - b.w, cx - ox));
+        b.y = Math.max(0, Math.min(H - b.w, cy - oy));
+      } else {
+        b.w = Math.max(24, Math.min(Math.min(W - b.x, H - b.y), cx - b.x));
+      }
+      drawFC();
+    };
+    wrap.onpointerup = () => { wrap.onpointermove = null; wrap.onpointerup = null; };
+  };
+}
+window.faceCropSave = async () => {
+  const b = FC.box, sc = fcScale(), side = Math.round(b.w * sc);
+  const out = Math.min(side, 1024);                       // crop, never upscale
+  const cv = document.createElement('canvas'); cv.width = cv.height = out;
+  cv.getContext('2d').drawImage(FC.img, Math.round(b.x * sc), Math.round(b.y * sc), side, side, 0, 0, out, out);
+  const data = cv.toDataURL('image/jpeg', 0.92);
+  closeLightbox();
+  await sendMe('face', data, side);
+};
+function addMe(role) { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true; inp.onchange = async () => { for (const f of inp.files) await uploadMe(role, f); }; inp.click(); }
+
+/* =============================================================== page 4 — fits index */
+let fitsUI = { q: '', sort: 'recent' };
+function pageFits(M) {
+  const sorters = { recent: (a, b) => b.updated_at.localeCompare(a.updated_at), created: (a, b) => b.created_at.localeCompare(a.created_at), name: (a, b) => a.name.localeCompare(b.name), images: (a, b) => b.images.length - a.images.length };
+  const fits = S.fits.filter(f => f.name.toLowerCase().includes(fitsUI.q.toLowerCase())).sort(sorters[fitsUI.sort]);
+  const cover = f => { const im = f.images.find(i => i.id === f.cover_image_id) || f.images[f.images.length - 1]; return im ? `<img src="${imgUrl(im.filename)}" alt="">` : '<div class="plus">+</div>'; };
+  M.innerHTML = `<div class="head"><h1>Fits</h1><span class="grow"></span><button class="primary" onclick="newFit()">+ New Fit</button></div>
+    <div class="row" style="margin-bottom:14px"><input type="search" placeholder="search…" value="${esc(fitsUI.q)}" oninput="fitsUI.q=this.value;pageFits(document.getElementById('main'));this.focus()" id="fitq"><span class="grow"></span>
+      <label class="small muted">Sort</label><select onchange="fitsUI.sort=this.value;route()"><option value="recent" ${fitsUI.sort === 'recent' ? 'selected' : ''}>Recent</option><option value="created" ${fitsUI.sort === 'created' ? 'selected' : ''}>Created</option><option value="name" ${fitsUI.sort === 'name' ? 'selected' : ''}>Name</option><option value="images" ${fitsUI.sort === 'images' ? 'selected' : ''}>Most images</option></select></div>
+    ${fits.length ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">${fits.map(f => `<a class="card" href="#/fit/${f.id}"><div class="thumb">${cover(f)}</div>
+        <div class="body"><div class="title">${esc(f.name)}</div><div class="muted">${(n => `${n} item${n === 1 ? '' : 's'}`)(f.shortlist.filter(s => s.selected).length)} · ${f.images.length ? `${f.images.length} image${f.images.length === 1 ? '' : 's'}` : 'no images'}</div>
+        <div class="row" style="justify-content:space-between;margin-top:2px"><span class="muted">${ago(f.updated_at)}</span><button class="ghost" style="padding:0 6px" onclick="event.preventDefault();event.stopPropagation();fitMenu(this,'${f.id}')">⋯</button></div></div></a>`).join('')}</div>`
+      : `<div class="empty">${S.fits.length ? 'No fits match.' : 'No fits yet. A Fit is a named combination of items plus every image it generates.'}</div>`}`;
+  const q = M.querySelector('#fitq'); if (fitsUI.q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+}
+function fitMenu(btn, id) {
+  document.querySelectorAll('.menu').forEach(m => m.remove());
+  const f = fitById(id); const m = document.createElement('div'); m.className = 'menu'; m.style.top = '100%'; m.style.right = '0';
+  m.innerHTML = `<button onclick="renameFit('${id}')">Rename</button><button onclick="dupFit('${id}')">Duplicate</button><button class="danger" onclick="deleteFit('${id}')">Delete</button>`;
+  const host = btn.closest('.card') || btn.parentElement; host.style.position = 'relative'; host.appendChild(m);
+  m.onclick = e => { e.preventDefault(); e.stopPropagation(); };
+  setTimeout(() => document.addEventListener('click', () => m.remove(), { once: true }), 0);
+}
+async function renameFit(id) { const f = fitById(id); const n = prompt('Rename fit', f.name); if (n == null || !n.trim()) return; await post('/api/fits', { id, name: n.trim() }); await refresh(); }
+async function dupFit(id) { const f = fitById(id); const n = prompt('Name for the copy', `${f.name} copy`); if (n == null) return; const r = await post('/api/fits', { duplicate_of: id, name: n || `${f.name} copy` }); await load(); go(`/fit/${r.id}`); }
+async function deleteFit(id) { const f = fitById(id); if (!confirm(`Delete "${f.name}" and its ${f.images.length} generated image${f.images.length === 1 ? '' : 's'}? Items in your library are untouched.`)) return; await del(`/api/fits/${id}`); await load(); go('/fits'); }
+
+/* =============================================================== generation planner */
+// Selected rows of a fit, in layer order. Returns [{cat, items}] honouring the full-body exclusion.
+function selectedRows(fit) {
+  const rows = [];
+  for (const c of CATS) {
+    const items = fit.shortlist.filter(s => s.selected).map(s => itemById(s.item_id)).filter(i => i && i.category === c.id && i.photos.length);
+    if (items.length) rows.push({ cat: c.id, items });
+  }
+  const hasFull = rows.some(r => r.cat === 'fullbody');
+  return hasFull ? rows.filter(r => !['top', 'bottom'].includes(r.cat)) : rows;
+}
+function genOpts(fit) {
+  const s = fit.settings || {}, faces = S.me.filter(m => m.role === 'face' && m.starred).sort((a, b) => a.star_order - b.star_order);
+  const poses = S.me.filter(m => m.role === 'pose'), bodies = S.me.filter(m => m.role === 'body');
+  const quality = s.quality || S.settings.quality || 'flash';
+  return {
+    quality, resolution: s.resolution || S.settings.resolution || '1K', aspect: s.aspect || S.settings.aspect || '2:3',
+    pose: poses.find(p => p.id === s.pose_id) || poses[0] || null,
+    bodyOn: s.body_on != null ? !!s.body_on : bodies.length > 0, body: bodies.find(b => b.id === s.body_id) || bodies[0] || null,
+    strict: !!s.strict, faces, scene: fit.scene || '',
+    expression: s.expression || 'neutral',
+    poseExplicit: !!(s.pose_id && poses.some(p => p.id === s.pose_id)),
+  };
+}
+// Sync summary: what would be sent, budget, warnings. No canvas work.
+function planSummary(fit) {
+  const o = genOpts(fit), M = S.models[o.quality], rows = selectedRows(fit);
+  const look = rows.find(r => r.cat === 'look'), others = rows.filter(r => r.cat !== 'look');
+  const strictOn = o.strict && look && others.length > 0;
+  const passes = strictOn ? 2 : 1;
+  const objects = strictOn ? Math.max(1, others.length) : rows.length;
+  const charCap = M.characters; let body = o.bodyOn && o.body ? 1 : 0;
+  let faceN = Math.max(0, Math.min(o.faces.length, charCap - 1 - body));
+  if (o.faces.length && faceN === 0 && body) { body = 0; faceN = Math.min(o.faces.length, charCap - 1); }   // never drop identity for body
+  const chars = 1 + body + faceN;
+  const problems = [];
+  if (!o.pose) problems.push('No pose photo — add one in Me.');
+  if (!o.faces.length) problems.push('No starred face photo — nothing would carry your identity. Star one in Me.');
+  if (!rows.length) problems.push('Nothing selected.');
+  if (objects > M.objects) problems.push(`${rows.length} rows selected · ${M.label} holds ${M.objects} objects`);
+  const overBudget = objects > M.objects;
+  const cost = (M.price[o.resolution] ?? 0) * passes;
+  return { o, M, rows, look, others, strictOn, passes, objects, chars, faceN, body, charCap, problems, overBudget, cost, canStrict: !!(look && others.length) };
+}
+const refWord = i => `reference image ${i}`;
+const itemDesc = it => `${catName(it.category)}: ${it.title || 'untitled'}${it.prompt_notes ? ` (${it.prompt_notes})` : ''}`;
+// Async: builds sheets and prompts. → { passes:[{prompt, refs}], scene_used }
+async function buildPasses(fit) {
+  const P = planSummary(fit), o = P.o, word = S.settings.person_word || 'man';
+  const refs = [];       // character refs first
+  const faces = o.faces.slice(0, P.faceN);
+  for (const f of faces) refs.push({ kind: 'face', label: f.title || 'face', source: `library:${f.filename}`, sha: f.sha });
+  if (P.body) refs.push({ kind: 'body', label: o.body.title || 'body', source: `library:${o.body.filename}`, sha: o.body.sha });
+  // The same photo in two roles is ONE image. Sending it twice burns a character slot and
+  // tells the model nothing new — it happened on run 1 and cost us a face. (OPEN.md F2.)
+  const dupAt = refs.findIndex(r => r.sha && o.pose.sha && r.sha === o.pose.sha);
+  let poseIdx;
+  if (dupAt >= 0) { poseIdx = dupAt + 1; refs[dupAt].detail = 'also used as the pose reference'; }
+  else { refs.push({ kind: 'pose', label: o.pose.title || 'pose', source: `library:${o.pose.filename}`, sha: o.pose.sha }); poseIdx = refs.length; }
+  const faceIdx = faces.map((_, i) => i + 1), bodyIdx = P.body ? faces.length + 1 : 0;
+  const lines = [];
+  // Identity first (a constraint). Pose, framing and expression move to the very end —
+  // late instructions dominate, and on run 2 the trailing scene text overrode a pose
+  // clause sitting in sentence three. (OPEN.md F4.)
+  lines.push(`${faceIdx.length > 1 ? `Reference images ${faceIdx[0]}–${faceIdx.at(-1)} show the same ${word}` : `${refWord(1)} shows a ${word}`}. Use ${faceIdx.length > 1 ? 'them' : 'it'} ONLY for his face, hair, skin and build — keep them exactly as shown.` +
+    (bodyIdx ? ` ${refWord(bodyIdx)} shows his full body — use it for his proportions.` : '') +
+    ` The clothing in reference images 1–${refs.length} is irrelevant — do not reproduce any of it.`);
+
+  // one object ref per row
+  async function rowRef(row) {
+    const c = CAT[row.cat];
+    if (row.items.length === 1) {
+      const it = row.items[0], ph = it.photos.slice().sort((a, b) => a.slot - b.slot).filter(p => it.multi_angle || p.slot === 0);
+      if (ph.length === 1) return { kind: row.cat === 'look' ? 'look' : 'item', label: `${c.name} · ${it.title || 'untitled'}`, detail: it.prompt_notes, source: `library:${ph[0].filename}`, items: [it], sheetOf: null };
+      const cells = ph.map(p => ({ src: libUrl(p.filename), label: p.label || c.labels[p.slot] }));
+      return { kind: 'sheet', label: `${c.name} · ${it.title || 'untitled'}`, detail: `angles: ${cells.map(x => x.label).join(', ')}`, source: await makeSheet(cells), items: [it], sheetOf: 'angles' };
+    }
+    const cells = row.items.map(it => ({ src: libUrl((it.photos.find(p => p.slot === 0) || it.photos[0]).filename), label: `${c.name} · ${it.title || 'untitled'}` }));
+    return { kind: 'sheet', label: `${c.name} · sheet ×${row.items.length}`, detail: row.items.map(i => i.title || 'untitled').join(' + '), source: await makeSheet(cells), items: row.items, sheetOf: 'items' };
+  }
+  const describe = (r, idx) => {
+    const c = CAT[r.items[0].category], isLook = c.id === 'look';
+    if (r.sheetOf === 'angles') return isLook
+      ? `${refWord(idx)} is a labelled contact sheet of ONE complete outfit photographed from several angles; each panel is captioned. Treat all panels as the same outfit. He wears that complete outfit${r.items[0].prompt_notes ? ` (${r.items[0].prompt_notes})` : ''}.`
+      : `${refWord(idx)} is a labelled contact sheet showing ONE single garment from several angles — ${itemDesc(r.items[0])}; each panel is captioned with its angle. Treat all panels as the same garment. He wears it.`;
+    if (r.sheetOf === 'items') return isLook
+      ? `${refWord(idx)} is a labelled contact sheet of ${r.items.length} outfit photos; each panel is captioned. He wears an outfit combining them.`
+      : `${refWord(idx)} is a labelled contact sheet containing ${r.items.length} DIFFERENT ${GARMENT_WORD[c.id] || 'items'}, each panel captioned. He wears ALL of them: ${r.items.map(itemDesc).join('; ')}.`;
+    return isLook ? `He wears the complete outfit shown in ${refWord(idx)}${r.items[0].prompt_notes ? ` (${r.items[0].prompt_notes})` : ''}.`
+                  : `He wears the ${GARMENT_WORD[c.id] || 'garment'} shown in ${refWord(idx)} — ${itemDesc(r.items[0])}.`;
+  };
+  const defaults = (rows) => {
+    if (rows.some(r => r.cat === 'look')) return '';
+    const has = id => rows.some(r => r.cat === id), out = [];
+    if (!has('fullbody') && !has('top') && !has('mid') && !has('outerwear')) out.push('a plain white t-shirt');
+    if (!has('fullbody') && !has('bottom')) out.push('plain dark trousers');
+    if (!has('socks') && !has('footwear')) out.push('plain white sneakers');
+    return out.length ? ` For anything not covered above he wears ${out.join(', ')}.` : '';
+  };
+  const scene = o.scene.trim();
+  // Expression was never stated anywhere, so the model supplied the catalogue default:
+  // a smile that matched no reference. It is now explicit, and last. (OPEN.md F3.)
+  const EXPR = {
+    neutral: 'His expression is relaxed and neutral, mouth closed, looking straight at the camera.',
+    slight:  'His expression is a slight closed-mouth smile, looking straight at the camera.',
+    pose:    'Match his facial expression and gaze direction to the pose reference.',
+    free:    '',
+  };
+  const tail = (rows) =>
+    `${scene ? ` Scene: ${scene}.` : ' Plain light grey studio background, even soft frontal lighting.'}` +
+    ` Reproduce every garment's colour, pattern, cut and hardware exactly as shown.${defaults(rows)}` +
+    ` ${refWord(poseIdx)} shows the pose, framing and camera angle to reproduce${o.pose.title ? ` (${o.pose.title})` : ''} — match his stance, weight, arm and head position, the camera angle and the crop.` +
+    `${EXPR[o.expression] ? ` ${EXPR[o.expression]}` : ''}` +
+    ` Generate ONE single photograph of him, full body visible.`;
+
+  const lookRef = P.look ? await rowRef(P.look) : null;
+  const otherRefs = []; for (const r of P.others) otherRefs.push(await rowRef(r));
+
+  if (!P.strictOn) {
+    const objRefs = [lookRef, ...otherRefs].filter(Boolean);
+    objRefs.forEach((r, i) => { r.idx = refs.length + 1; refs.push(r); });
+    for (const r of objRefs) lines.push(describe(r, r.idx));
+    if (lookRef && otherRefs.length) lines.push(`IMPORTANT EXCEPTIONS to the outfit in ${refWord(lookRef.idx)}: ` + otherRefs.map(r => `do NOT use the ${GARMENT_WORD[r.items[0].category]} from ${refWord(lookRef.idx)} — he wears the ${GARMENT_WORD[r.items[0].category]} shown in ${refWord(r.idx)} instead`).join('; ') + '.');
+    lines.push(tail(P.rows).trim());
+    return { scene_used: scene, passes: [{ prompt: cap(lines.join(' ')), refs: refs.map(strip) }] };
+  }
+  // strict: pass 1 = look only; pass 2 = swap each override against the result
+  lookRef.idx = refs.length + 1; refs.push(lookRef);
+  lines.push(describe(lookRef, lookRef.idx)); lines.push(tail([P.look]).trim());
+  const p2refs = otherRefs.map((r, i) => ({ ...r, idx: i + 1, kind: 'override' }));
+  const p2 = `Edit the photograph you just generated. Keep the ${word}, his face, pose, framing, lighting and background EXACTLY the same. Change ONLY the following: ` +
+    p2refs.map(r => `replace the ${GARMENT_WORD[r.items[0].category]} he is wearing with the ${GARMENT_WORD[r.items[0].category]} shown in ${refWord(r.idx)} — ${r.items.map(itemDesc).join('; ')}${r.sheetOf ? ' (a labelled contact sheet; each panel is captioned)' : ''}`).join('; ') +
+    '. Reproduce its colour, pattern, cut and hardware exactly. Everything else stays as it was. Generate ONE single photograph.';
+  return { scene_used: scene, passes: [{ prompt: cap(lines.join(' ')), refs: refs.map(strip) }, { prompt: cap(p2), refs: p2refs.map(strip) }] };
+  function cap(t) { return t.replace(/(^|[.!?]\s+)reference image/g, (m, p) => p + 'Reference image'); }
+  function strip(r) { return { kind: r.kind, label: r.label, detail: r.detail || '', source: r.source }; }
+}
+
+/* =============================================================== page 5 — fit builder */
+const fitUI = {};                                  // per fit: { search:{cat:text}, err }
+let inflight = null;                               // { fitId, since }
+function pageFit(M, id) {
+  const fit = fitById(id); if (!fit) { M.innerHTML = '<div class="empty">Fit not found.</div>'; return; }
+  const U = fitUI[id] ||= { search: {} };
+  const P = planSummary(fit), o = P.o;
+  const shortlistIds = new Set(fit.shortlist.map(s => s.item_id));
+  const lookSelected = !!P.look;
+  const hasFull = P.rows.some(r => r.cat === 'fullbody');
+  const rowHtml = c => {
+    const lib = S.items.filter(i => i.category === c.id && !shortlistIds.has(i.id));
+    const sl = fit.shortlist.filter(s => itemById(s.item_id)?.category === c.id).map(s => ({ ...s, item: itemById(s.item_id) }));
+    if (!lib.length && !sl.length) return `<div class="crow empty"><span style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:600">${c.name} <span style="font-weight:400;letter-spacing:0;text-transform:none">— empty</span></span><button class="ghost" title="new ${c.name.toLowerCase()} item" onclick="newItem('${c.id}')">+</button></div>`;
+    const q = (U.search[c.id] || '').toLowerCase();
+    const libF = lib.filter(i => !q || (i.title + ' ' + i.prompt_notes + ' ' + i.my_notes).toLowerCase().includes(q));
+    const selN = sl.filter(s => s.selected).length;
+    const excluded = hasFull && ['top', 'bottom'].includes(c.id) && selN;
+    let note = '';
+    if (excluded) note = 'excluded — Full-body is selected';
+    else if (selN > 1) note = `${selN} selected → 1 sheet`;
+    else if (selN && lookSelected && c.id !== 'look') note = 'overrides the look';
+    else if (selN === 1 && sl.find(s => s.selected).item.multi_angle && sl.find(s => s.selected).item.photos.length > 1) note = `${sl.find(s => s.selected).item.photos.length} angles → 1 sheet`;
+    return `<div class="crow">
+      <div class="half"><div class="cap"><span>${c.name}</span><input type="search" placeholder="search" value="${esc(U.search[c.id] || '')}" oninput="fitUI['${id}'].search['${c.id}']=this.value;rerenderRow('${id}','${c.id}')"><span class="grow"></span><button class="ghost small" style="padding:0 6px" title="new item" onclick="newItem('${c.id}')">+ new</button></div>
+        <div class="strip">${libF.map(i => `<div class="mini" title="${esc(i.title)} — click to add to shortlist" onclick="shortlist('${id}','${i.id}','add')">${itemThumb(i)}<div class="t">${esc(i.title) || '<span class=muted>untitled</span>'}</div><span class="add">+</span></div>`).join('') || `<div class="small muted" style="padding:8px 0">${lib.length ? 'no match' : 'all in shortlist'}</div>`}</div></div>
+      <div class="half"><div class="cap"><span>Shortlist</span></div>
+        <div class="strip">${sl.length ? sl.map(s => `<div class="mini sl ${s.selected && !excluded ? 'sel' : ''}" title="${esc(s.item.title)} — click to ${s.selected ? 'deselect' : 'select'}" onclick="shortlist('${id}','${s.item.id}','${s.selected ? 'deselect' : 'select'}')">${itemThumb(s.item)}<div class="t">${esc(s.item.title) || '<span class=muted>untitled</span>'}</div><div class="chk">${s.selected && !excluded ? '✓' : ''}</div><span class="x" title="remove from shortlist" onclick="event.stopPropagation();shortlist('${id}','${s.item.id}','remove')">✕</span></div>`).join('') : '<div class="small muted" style="padding:14px 0;width:100%;text-align:center">nothing selected</div>'}</div>
+        ${note ? `<div class="note">${note}</div>` : ''}</div></div>`;
+  };
+  const recent = fit.images.slice().sort((a, b) => b.seq - a.seq).slice(0, 10);
+  const spinning = inflight && inflight.fitId === id;
+  const poses = S.me.filter(m => m.role === 'pose'), bodies = S.me.filter(m => m.role === 'body');
+  const idWarn = (() => {                     // OPEN.md F1 — nothing checked this before
+    const f = o.faces;
+    if (!f.length) return 'No face reference is being sent — the result will not be you.';
+    const px = f.map(x => +x.face_px || 0), min = Math.min(...px);
+    if (!min) return `Face size unknown for ${px.filter(x => !x).length} of ${f.length} — re-add through the crop step so the app can check.`;
+    if (min < 512) return `Smallest face reference is ${min}px. Under 512 the model invents a face rather than reproducing yours — the result will not be you.`;
+    if (f.length < 3) return `${f.length} face reference${f.length > 1 ? 's' : ''} at ${min}px. Three to four, from different angles under one lighting setup, is the recommended set.`;
+    return '';
+  })();
+  M.innerHTML = `<div class="fit">
+    <div class="head" style="margin-bottom:10px"><a class="back" href="#/fits">‹ Fits</a><input class="name-input" value="${esc(fit.name)}" onchange="post('/api/fits',{id:'${id}',name:this.value.trim()||'Untitled fit'}).then(load).then(()=>renderNav('fit'))">
+      <span class="grow"></span><span class="seg"><button class="on">Build</button><button onclick="go('/fit/${id}/images')">Images ${fit.images.length}</button></span>
+      <span style="position:relative"><button class="ghost" onclick="fitMenu(this,'${id}')">⋯</button></span></div>
+    <div class="rows" id="rows">${CATS.map(rowHtml).join('')}</div>
+    <div class="dock"><div class="row" style="margin-bottom:6px"><h2>Results</h2><span class="small muted">click to enlarge</span></div>
+      <div class="imgs">${spinning ? '<div class="im"><span class="spin">⟳</span></div>' : ''}${recent.map(im => `<div class="im" onclick="openLightbox('${im.id}')"><img src="${imgUrl(im.filename)}" alt=""><span class="seq">#${im.seq}</span></div>`).join('') || (spinning ? '' : '<div class="small muted" style="padding:10px 0">nothing generated yet</div>')}</div></div>
+    <div class="genbar">
+      ${idWarn ? `<div class="warn" style="margin-bottom:8px">${idWarn} <a href="#/me" style="text-decoration:underline">Fix in Me →</a></div>` : ''}
+      <div class="row wrap">
+        <label>Pose</label><select onchange="fitSet('${id}',{pose_id:this.value})" ${poses.length ? '' : 'disabled'}>${poses.length ? poses.map(p => `<option value="${p.id}" ${o.pose?.id === p.id ? 'selected' : ''}>${esc(p.title) || 'pose'}</option>`).join('') : '<option>none — add in Me</option>'}</select>${o.pose && !o.poseExplicit && poses.length > 1 ? `<span class="notechip" title="No pose was ever chosen for this fit, so the oldest one is being used.">⚠ not chosen — using oldest of ${poses.length}</span>` : ''}
+        <label>Body</label><span class="tog ${o.bodyOn && o.body ? 'on' : ''}" onclick="fitSet('${id}',{body_on:${o.bodyOn ? 'false' : 'true'}})" ${bodies.length ? '' : 'style="opacity:.4;pointer-events:none"'}><i></i></span>
+        ${bodies.length > 1 ? `<select onchange="fitSet('${id}',{body_id:this.value})">${bodies.map(b => `<option value="${b.id}" ${o.body?.id === b.id ? 'selected' : ''}>${esc(b.title) || 'body'}</option>`).join('')}</select>` : `<span class="small muted">${bodies.length ? esc(o.body.title || 'body') : 'none'}</span>`}
+        <label>Face</label><span>${P.faceN}★${P.faceN < o.faces.length ? ` <span class="small muted">of ${o.faces.length}</span>` : ''}</span>
+        <span class="grow"></span>
+        <label>Quality</label><span class="seg"><button class="${o.quality === 'flash' ? 'on' : ''}" onclick="fitSet('${id}',{quality:'flash'})">Flash</button><button class="${o.quality === 'pro' ? 'on' : ''}" onclick="fitSet('${id}',{quality:'pro'})">Pro</button></span>
+        <span class="small ${P.overBudget ? '' : 'muted'}">objects <b>${P.objects}/${P.M.objects}</b></span><span class="small muted">characters <b>${P.chars}/${P.charCap}</b></span>
+      </div>
+      <div class="row wrap">
+        <label>Strict override</label><span class="tog ${P.strictOn ? 'on' : ''}" onclick="fitSet('${id}',{strict:${o.strict ? 'false' : 'true'}})" ${P.canStrict ? '' : 'style="opacity:.4;pointer-events:none"'} title="Two passes: generate the look, then swap the overriding items against that result. Doubles cost."><i></i><span class="small">${P.strictOn ? 'on' : 'off'}</span></span>
+        <span class="small muted">${P.canStrict ? `look + ${P.others.length} override${P.others.length > 1 ? 's' : ''} · ${P.passes} pass${P.passes > 1 ? 'es' : ''}` : 'needs a Look plus another row selected'}</span>
+        <span class="grow"></span>
+        <label>Expression</label><select onchange="fitSet('${id}',{expression:this.value})">${
+          [['neutral','neutral'],['slight','slight smile'],['pose','as in pose ref'],['free','unspecified']]
+            .map(([v,t]) => `<option value="${v}" ${o.expression === v ? 'selected' : ''}>${t}</option>`).join('')}</select>
+        <label>Scene</label><input type="text" style="width:min(420px,40vw)" placeholder="outdoors, overcast daylight, full body — blank = plain studio" value="${esc(fit.scene)}" oninput="sceneSet('${id}',this.value)">
+      </div>
+      ${P.overBudget ? `<div class="warn">⚠ ${P.rows.length} rows selected · ${P.M.label} holds ${P.M.objects} objects<br><span class="muted">${P.rows.map(r => catName(r.cat).toLowerCase()).join(', ')}</span><br>Deselect ${P.objects - P.M.objects}, ${o.quality === 'pro' ? 'or switch to Flash (10)' : 'or use strict override (pass 2 only carries the overrides)'}</div>` : ''}
+      ${U.err ? `<div class="err">${esc(U.err)} <button class="ghost small" onclick="fitUI['${id}'].err='';route()">dismiss</button></div>` : ''}
+      <div class="row">
+        <select onchange="fitSet('${id}',{resolution:this.value})">${['1K', '2K', '4K'].map(r => `<option ${o.resolution === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
+        <select onchange="fitSet('${id}',{aspect:this.value})">${ASPECTS.map(a => `<option value="${a}" ${o.aspect === a ? 'selected' : ''}>${ASPECT_NAMES[a]}</option>`).join('')}</select>
+        <span class="grow"></span>
+        ${P.problems.length && !P.overBudget ? `<span class="small muted">${esc(P.problems[0])}</span>` : ''}
+        <span class="mono">~${money(P.cost)}</span>
+        <button class="primary" id="genbtn" ${P.problems.length || spinning ? 'disabled' : ''} onclick="generate('${id}')">${spinning ? 'Generating…' : 'Generate ▶'}</button>
+      </div>
+    </div></div>`;
+}
+function rerenderRow(fitId, catId) {         // keep the search box focused: re-render only the strip
+  const fit = fitById(fitId), U = fitUI[fitId], q = (U.search[catId] || '').toLowerCase();
+  const shortlistIds = new Set(fit.shortlist.map(s => s.item_id));
+  const lib = S.items.filter(i => i.category === catId && !shortlistIds.has(i.id));
+  const libF = lib.filter(i => !q || (i.title + ' ' + i.prompt_notes + ' ' + i.my_notes).toLowerCase().includes(q));
+  const strip = [...document.querySelectorAll('.crow .cap input')].find(i => i.oninput?.toString().includes(`'${catId}'`))?.closest('.half')?.querySelector('.strip');
+  if (strip) strip.innerHTML = libF.map(i => `<div class="mini" title="${esc(i.title)}" onclick="shortlist('${fitId}','${i.id}','add')">${itemThumb(i)}<div class="t">${esc(i.title) || '<span class=muted>untitled</span>'}</div><span class="add">+</span></div>`).join('') || '<div class="small muted" style="padding:8px 0">no match</div>';
+}
+async function shortlist(fitId, itemId, action) {
+  const fit = fitById(fitId), it = itemById(itemId);
+  await post(`/api/fits/${fitId}/shortlist`, { item_id: itemId, action });
+  if (action === 'select' && it.category === 'fullbody')                  // full-body excludes top + bottom
+    for (const s of fit.shortlist.filter(s => s.selected && ['top', 'bottom'].includes(itemById(s.item_id)?.category))) await post(`/api/fits/${fitId}/shortlist`, { item_id: s.item_id, action: 'deselect' });
+  if (action === 'select' && ['top', 'bottom'].includes(it.category))
+    for (const s of fit.shortlist.filter(s => s.selected && itemById(s.item_id)?.category === 'fullbody')) await post(`/api/fits/${fitId}/shortlist`, { item_id: s.item_id, action: 'deselect' });
+  const scroll = document.getElementById('rows')?.scrollTop; await refresh(); const r = document.getElementById('rows'); if (r && scroll != null) r.scrollTop = scroll;
+}
+async function fitSet(fitId, settings) { const scroll = document.getElementById('rows')?.scrollTop; await post('/api/fits', { id: fitId, settings }); await refresh(); const r = document.getElementById('rows'); if (r) r.scrollTop = scroll; }
+let sceneT; function sceneSet(fitId, v) { fitById(fitId).scene = v; clearTimeout(sceneT); sceneT = setTimeout(() => post('/api/fits', { id: fitId, scene: v }), 500); }
+async function generate(fitId) {
+  const fit = fitById(fitId); if (inflight) return;
+  const P = planSummary(fit); if (P.problems.length) return;
+  if (S.settings.budget_on === '1' && S.spend.total + P.cost > +S.settings.budget_warn && !confirm(`This month's spend is ${money(S.spend.total)}, past your ${money(+S.settings.budget_warn)} warning. Generate anyway?`)) return;
+  inflight = { fitId, since: Date.now() }; fitUI[fitId].err = ''; route();
+  try {
+    const plan = await buildPasses(fit);
+    const r = await post('/api/generate', { fit_id: fitId, quality: P.o.quality, resolution: P.o.resolution, aspect: P.o.aspect, scene_used: plan.scene_used, passes: plan.passes });
+    inflight = null; await load();
+    if (location.hash.includes(fitId)) { route(); openLightbox(r.id); }
+    if (r.resume_mode === 'reference') toast("Pass 2 couldn't resume — sent the pass-1 image as a reference instead.", 5000);
+  } catch (e) { inflight = null; fitUI[fitId].err = `Generation failed: ${e.message}`; await load(); route(); }
+}
+
+/* =============================================================== page 5b — images tab */
+let galSort = 'newest';
+function pageFitImages(M, id) {
+  const fit = fitById(id); if (!fit) { M.innerHTML = '<div class="empty">Fit not found.</div>'; return; }
+  const imgs = fit.images.slice().sort({ newest: (a, b) => b.seq - a.seq, oldest: (a, b) => a.seq - b.seq, cost: (a, b) => b.cost - a.cost, model: (a, b) => a.model.localeCompare(b.model) || b.seq - a.seq }[galSort]);
+  M.innerHTML = `<div class="head" style="margin-bottom:10px"><a class="back" href="#/fits">‹ Fits</a><input class="name-input" value="${esc(fit.name)}" onchange="post('/api/fits',{id:'${id}',name:this.value.trim()||'Untitled fit'}).then(load).then(()=>renderNav('fit'))">
+      <span class="grow"></span><span class="seg"><button onclick="go('/fit/${id}')">Build</button><button class="on">Images ${fit.images.length}</button></span><span style="position:relative"><button class="ghost" onclick="fitMenu(this,'${id}')">⋯</button></span></div>
+    <div class="row" style="margin-bottom:12px"><span class="grow"></span><label class="small muted">Sort</label><select onchange="galSort=this.value;route()">${['newest', 'oldest', 'cost', 'model'].map(s => `<option ${galSort === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+    ${imgs.length ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">${imgs.map(im => { const parent = im.parent_image_id ? fit.images.find(i => i.id === im.parent_image_id) : null;
+      return `<a class="card" href="#/image/${im.id}"><div class="thumb" style="aspect-ratio:2/3"><img src="${imgUrl(im.filename)}" alt=""></div>
+        <div class="body"><div class="row" style="justify-content:space-between"><b>#${im.seq}</b><span class="muted small">${im.id === fit.cover_image_id ? '★ ' : ''}${im.parent_image_id ? (parent ? `↑#${parent.seq}` : '↑deleted') : ''}</span></div>
+        <div class="muted">${S.models[im.model]?.label || im.model} ${im.resolution}${im.passes > 1 ? ' · 2 passes' : ''}</div></div></a>`; }).join('')}</div>`
+      : '<div class="empty">No images yet. Build the fit and press Generate.</div>'}`;
+}
+
+/* =============================================================== lightbox */
+function openLightbox(imageId) {
+  const im = imageById(imageId); if (!im) return;
+  const fit = fitById(im.fit_id), sorted = fit.images.slice().sort((a, b) => a.seq - b.seq), i = sorted.findIndex(x => x.id === im.id);
+  const prev = sorted[i - 1], next = sorted[i + 1];
+  const refLines = im.refs.filter(r => !['face', 'body', 'pose'].includes(r.kind)).map(r => `<div class="refline"><span>${esc(r.label)}${r.kind === 'override' ? '<span class="tag">override</span>' : ''}</span></div>`).join('');
+  document.getElementById('overlay').innerHTML = `<div class="lb" onclick="if(event.target===this)closeLightbox()"><div class="box">
+    <div class="top"><b>#${im.seq}</b><button class="ghost" onclick="closeLightbox()">✕</button></div>
+    <div class="mid"><img src="${imgUrl(im.filename)}" alt="">
+      <div><div class="small muted" style="margin-bottom:8px">${S.models[im.model]?.label || im.model} · ${im.resolution} · ${money(im.cost)}${im.passes > 1 ? ' · 2 passes' : ''}${im.resume_mode === 'reference' ? '<br>sent as reference (couldn\'t resume)' : ''}</div>
+        <div class="small">${refLines || '<span class="muted">no garment refs recorded</span>'}</div>
+        ${im.refine_text ? `<div class="small" style="margin-top:8px"><span class="muted">refine:</span> ${esc(im.refine_text)}</div>` : ''}</div></div>
+    <div class="bot"><button class="ghost" ${prev ? `onclick="openLightbox('${prev.id}')"` : 'disabled'}>‹ ${prev ? '#' + prev.seq : ''}</button>
+      <span class="row"><button onclick="go('/image/${im.id}')">Refine →</button><a href="${imgUrl(im.filename)}" download="${fit.name.replace(/[^\w-]+/g, '_')}-${im.seq}.jpg"><button>Download</button></a></span>
+      <button class="ghost" ${next ? `onclick="openLightbox('${next.id}')"` : 'disabled'}>${next ? '#' + next.seq : ''} ›</button></div></div></div>`;
+  document.onkeydown = e => { if (e.key === 'Escape') closeLightbox(); if (e.key === 'ArrowLeft' && prev) openLightbox(prev.id); if (e.key === 'ArrowRight' && next) openLightbox(next.id); };
+}
+function closeLightbox() { document.getElementById('overlay').innerHTML = ''; document.onkeydown = null; }
+
+/* =============================================================== page 6 — image detail */
+let refining = null;
+function pageImage(M, id) {
+  const im = imageById(id); if (!im) { M.innerHTML = '<div class="empty">Image not found — it may have been deleted.</div>'; return; }
+  const fit = fitById(im.fit_id), sorted = fit.images.slice().sort((a, b) => a.seq - b.seq), i = sorted.findIndex(x => x.id === id);
+  const prev = sorted[i - 1], next = sorted[i + 1];
+  const parent = im.parent_image_id ? fit.images.find(x => x.id === im.parent_image_id) : null;
+  const children = fit.images.filter(x => x.parent_image_id === im.id).sort((a, b) => a.seq - b.seq);
+  // walk the refine chain back to the root so the REFINE panel shows the whole conversation
+  const chain = []; let cur = im; while (cur) { chain.unshift(cur); cur = cur.parent_image_id ? fit.images.find(x => x.id === cur.parent_image_id) : null; }
+  const chars = im.refs.filter(r => ['face', 'body', 'pose'].includes(r.kind));
+  const faceN = chars.filter(r => r.kind === 'face').length, body = chars.find(r => r.kind === 'body'), pose = chars.find(r => r.kind === 'pose');
+  const garments = im.refs.filter(r => !['face', 'body', 'pose'].includes(r.kind));
+  const itemLink = label => { const t = label.split(' · ').slice(1).join(' · '); const it = S.items.find(x => x.title === t); return it ? `<a href="#/item/${it.id}">${esc(t)}</a>` : esc(t || label); };
+  const kv = (k, v) => `<div class="k">${k}</div><div>${v}</div>`;
+  M.innerHTML = `<div class="head"><a class="back" href="#/fit/${fit.id}">‹ ${esc(fit.name)}</a><span class="muted">#${im.seq} of ${sorted.length}</span><span class="grow"></span>
+      <a class="back" ${prev ? `href="#/image/${prev.id}"` : 'style="opacity:.3"'}>‹ prev</a><a class="back" ${next ? `href="#/image/${next.id}"` : 'style="opacity:.3"'}>next ›</a></div>
+    <div class="detail">
+      <div>
+        <div class="big"><img src="${imgUrl(im.filename)}" alt=""></div>
+        <div class="row" style="margin-top:10px;justify-content:space-between">
+          <div class="small"><div>${S.models[im.model]?.label || im.model} · ${im.resolution} · ${im.aspect} · ${im.passes > 1 ? '2 passes' : '1 pass'}${im.resume_mode === 'reference' ? ' · <span class="muted">couldn\'t resume, sent the image as a reference instead</span>' : ''}</div><div class="muted">${fmtDate(im.created_at)} · ${money(im.cost)}</div></div>
+          <div class="row"><a href="${imgUrl(im.filename)}" download="${fit.name.replace(/[^\w-]+/g, '_')}-${im.seq}.jpg"><button>Download</button></a>
+            <button onclick="post('/api/fits',{id:'${fit.id}',cover_image_id:'${im.id}'}).then(refresh)" ${fit.cover_image_id === im.id ? 'disabled' : ''}>${fit.cover_image_id === im.id ? '★ Cover' : 'Cover'}</button>
+            <button class="danger" onclick="deleteImage('${im.id}')">🗑</button></div></div>
+        <div class="block" style="margin-top:14px"><h2>Refine</h2>
+          ${chain.length > 1 ? `<div style="margin-bottom:10px">${chain.slice(1).map(x => `<div class="refline"><span>${esc(x.refine_text)}</span><a href="#/image/${x.id}">→ #${x.seq}${x.id === im.id ? ' (this)' : ''}</a></div>`).join('')}</div>` : ''}
+          ${children.length ? `<div class="small muted" style="margin-bottom:8px">refined from here: ${children.map(c => `<a href="#/image/${c.id}">#${c.seq}</a>`).join(', ')}</div>` : ''}
+          <div class="row" style="align-items:flex-start"><textarea id="refine" placeholder="tuck the henley in · warmer light, late afternoon · make the trousers slightly looser" ${refining ? 'disabled' : ''}>${refining?.text && refining.imageId === im.id ? esc(refining.text) : ''}</textarea>
+            <div style="text-align:right;flex:none"><div class="mono small muted">~${money(S.models[im.model]?.price[im.resolution] ?? 0)}</div><button class="primary" style="margin-top:6px" id="sendbtn" ${refining ? 'disabled' : ''} onclick="refine('${im.id}')">${refining?.imageId === im.id ? '<span class="spin">⟳</span> Sending' : 'Send'}</button></div></div>
+          <div class="small muted" style="margin-top:6px">Each line makes a new image — a refine is a full-price call. <kbd>⌘↵</kbd> sends.</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="block"><h2>Made from</h2><div class="kv">
+          ${kv('Pose', pose ? esc(pose.label) : '<span class="muted">—</span>')}${kv('Body', body ? esc(body.label) : '<span class="muted">none</span>')}${kv('Face', faceN ? `${faceN} starred` : '<span class="muted">none</span>')}
+          <div style="grid-column:1/-1;height:6px"></div>
+          ${garments.length ? garments.map(r => { const cat = r.label.split(' · ')[0]; return kv(esc(cat).replace('Accessories', 'Access').replace('Outerwear', 'Outer'), (r.kind === 'sheet' ? `<span class="muted">sheet ·</span> ${esc(r.detail || r.label)}` : itemLink(r.label)) + (r.kind === 'override' ? '<span class="tag">override</span>' : '')); }).join('') : kv('', '<span class="muted">no garment refs recorded</span>')}
+          </div>
+          ${im.refs.some(r => r.filename.startsWith('sheet-')) ? `<div class="small" style="margin-top:8px">${im.refs.filter(r => r.filename.startsWith('sheet-')).map(r => `<a class="muted" href="${imgUrl(r.filename)}" target="_blank">view sheet: ${esc(r.label)}</a>`).join('<br>')}</div>` : ''}
+        </div>
+        <div class="block"><h2>Scene</h2><div class="small">${im.scene_used ? esc(im.scene_used) : '<span class="muted">plain studio (none set)</span>'}</div>
+          ${im.parent_image_id ? `<div class="small muted" style="margin-top:10px">↑ refined from ${parent ? `<a href="#/image/${parent.id}">#${parent.seq}</a>` : 'a deleted image'}</div>` : ''}</div>
+        <details class="block"><summary class="small muted" style="cursor:pointer">Prompt as sent</summary><pre class="small" style="white-space:pre-wrap;margin:8px 0 0">${esc(im.prompt)}</pre></details>
+      </div>
+    </div>
+    <div class="block" style="margin-top:14px"><h2>Images</h2><div class="film">${sorted.map(x => `<a href="#/image/${x.id}" class="${x.id === im.id ? 'on' : ''}"><img src="${imgUrl(x.filename)}" alt=""><span class="n">#${x.seq}${x.id === im.id ? ' ←' : ''}</span></a>`).join('')}</div></div>`;
+  M.querySelector('#refine').onkeydown = e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') refine(im.id); };
+  document.onkeydown = e => { if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return; if (e.key === 'ArrowLeft' && prev) go(`/image/${prev.id}`); if (e.key === 'ArrowRight' && next) go(`/image/${next.id}`); };
+}
+async function refine(imageId) {
+  const text = document.getElementById('refine').value.trim(); if (!text || refining) return;
+  const im = imageById(imageId), cost = S.models[im.model]?.price[im.resolution] ?? 0;
+  if (S.settings.budget_on === '1' && S.spend.total + cost > +S.settings.budget_warn && !confirm(`This month's spend is ${money(S.spend.total)}, past your ${money(+S.settings.budget_warn)} warning. Send anyway?`)) return;
+  refining = { imageId, text }; route();
+  try {
+    const r = await post('/api/refine', { image_id: imageId, text });
+    refining = null; await load(); go(`/image/${r.id}`);
+    if (r.resume_mode === 'reference') toast("Couldn't resume the conversation — sent the image as a reference instead.", 5000);
+  } catch (e) { refining = null; await load(); route(); toast(`Refine failed: ${e.message}`, 6000); document.getElementById('refine').value = text; }
+}
+async function deleteImage(id) {
+  const im = imageById(id), fit = fitById(im.fit_id), kids = fit.images.filter(x => x.parent_image_id === id).length;
+  if (!confirm(`Delete image #${im.seq}?${kids ? ` ${kids} refinement${kids > 1 ? 's' : ''} of it will read "refined from a deleted image".` : ''}`)) return;
+  await del(`/api/images/${id}`); await load(); go(`/fit/${fit.id}/images`);
+}
+
+/* =============================================================== page 7 — settings */
+function pageSettings(M) {
+  const s = S.settings, sp = S.spend, st = S.storage, mb = (st.bytes / 1048576).toFixed(0);
+  const set = (k, v) => post('/api/settings', { [k]: v }).then(refresh);
+  M.innerHTML = `<div class="head"><h1>Settings</h1></div>
+    <div style="display:flex;flex-direction:column;gap:22px;max-width:640px">
+      <div><div class="row"><h2>Gemini API key</h2><span class="grow"></span><span class="small ${S.key_loaded ? '' : 'err'}">${S.key_loaded ? '✓ loaded from .env' : '✗ not found — put GEMINI_API_KEY=… in .env and restart the server'}</span></div>
+        <div class="small muted">Server-side. Never sent to the browser.</div></div>
+      <div><h2 style="margin-bottom:8px">Defaults <span style="font-weight:400;letter-spacing:0;text-transform:none">— new fits start here; each fit remembers its own</span></h2>
+        <div class="kv" style="grid-template-columns:110px 1fr;row-gap:8px;align-items:center">
+          <div class="k">Quality</div><div><span class="seg"><button class="${s.quality === 'flash' ? 'on' : ''}" onclick="post('/api/settings',{quality:'flash'}).then(refresh)">Flash</button><button class="${s.quality === 'pro' ? 'on' : ''}" onclick="post('/api/settings',{quality:'pro'}).then(refresh)">Pro</button></span></div>
+          <div class="k">Resolution</div><div><select onchange="post('/api/settings',{resolution:this.value}).then(refresh)">${['1K', '2K', '4K'].map(r => `<option ${s.resolution === r ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
+          <div class="k">Aspect</div><div><select onchange="post('/api/settings',{aspect:this.value}).then(refresh)">${ASPECTS.map(a => `<option value="${a}" ${s.aspect === a ? 'selected' : ''}>${ASPECT_NAMES[a]}</option>`).join('')}</select><div class="small muted">2:3 — most output is a standing full-body shot; squarer ratios spend pixels on wall</div></div>
+          <div class="k">Person</div><div><input type="text" value="${esc(s.person_word || 'man')}" style="width:120px" onchange="post('/api/settings',{person_word:this.value.trim()||'man'}).then(refresh)"> <span class="small muted">the noun the prompt uses for you: man, woman, person…</span></div>
+        </div></div>
+      <div><h2 style="margin-bottom:6px">Categories</h2><div class="small">${CATS.map(c => c.name).join(' · ')}</div>
+        <details style="margin-top:6px"><summary class="small muted" style="cursor:pointer">Default slot labels</summary>
+          <div class="kv small" style="grid-template-columns:110px 1fr;margin-top:6px">${CATS.map(c => `<div class="k">${c.name}</div><div class="mono">${c.labels.map((l, i) => `<span style="color:var(--s${i + 1})">${l.toLowerCase()}</span>`).join(' / ')}</div>`).join('')}</div>
+          <div class="small muted" style="margin-top:6px">Editable per item in the item editor. Custom categories are v2.</div></details></div>
+      <div><h2 style="margin-bottom:8px">Spend</h2>
+        <div class="row"><b style="font-size:18px">${money(sp.total)}</b><span class="muted">this month · ${sp.count} generation${sp.count === 1 ? '' : 's'}</span></div>
+        <div class="small muted" style="margin-top:4px">${sp.rows.map(r => `${S.models[r.model]?.label || r.model} ${r.resolution} ${r.n} × ${money(S.models[r.model]?.price[r.resolution] ?? r.cost / r.n)}`).join(' &nbsp;·&nbsp; ') || 'nothing yet'}</div>
+        <div class="row" style="margin-top:10px"><label class="small">Warn me past</label><span class="row" style="gap:4px">$<input type="number" min="1" step="1" value="${esc(s.budget_warn)}" style="width:70px" onchange="post('/api/settings',{budget_warn:this.value}).then(refresh)"></span><label class="small">per month</label>
+          <span class="tog ${s.budget_on === '1' ? 'on' : ''}" onclick="post('/api/settings',{budget_on:'${s.budget_on === '1' ? '0' : '1'}'}).then(refresh)"><i></i></span></div>
+        <div class="small muted" style="margin-top:4px">A careless afternoon at Pro 4K is $20. Past the line you're asked to confirm each call; nothing is blocked.</div></div>
+      <div><h2 style="margin-bottom:8px">Storage</h2>
+        <div class="row"><span class="meter" style="width:220px"><i style="width:${Math.min(100, st.bytes / (2 * 1073741824) * 100)}%"></i></span><span class="small">${mb} MB · ${st.items} items · ${st.fits} fits · ${st.images} images</span></div>
+        <div class="row" style="margin-top:10px"><a href="/api/export" download><button style="white-space:nowrap">Export library .tar.gz</button></a><button onclick="importArchive()">Import</button><span class="small muted">Import merges by id; nothing is overwritten unless it came from the same export.</span></div>
+        <div class="small muted" style="margin-top:4px">Everything is also plain files: <span class="mono">fitroom.db</span>, <span class="mono">library/</span>, <span class="mono">generated/</span>.</div></div>
+      <div style="border-top:1px solid var(--line);padding-top:16px"><button class="danger" onclick="clearAll()">Clear all data</button></div>
+    </div>`;
+}
+function importArchive() {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.gz,.tgz,application/gzip';
+  inp.onchange = () => { const f = inp.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = async () => { toast('Importing…'); try { const r = await post('/api/import', { data: rd.result }); toast(`Imported ${r.items} items, ${r.fits} fits, ${r.images} images`); await refresh(); } catch (e) { toast(`Import failed: ${e.message}`, 6000); } }; rd.readAsDataURL(f); };
+  inp.click();
+}
+async function clearAll() { if (prompt('This deletes every item, photo, fit and generated image. Type CLEAR to confirm.') !== 'CLEAR') return; await post('/api/clear', { confirm: 'CLEAR' }); await load(); go('/library/look'); toast('Cleared'); }
+
+/* =============================================================== boot */
+load().then(route).catch(e => { document.getElementById('main').innerHTML = `<div class="err">Could not reach the server: ${esc(e.message)}. Is <span class="mono">node server.js</span> running?</div>`; });
+</script>
+</body>
+</html>
